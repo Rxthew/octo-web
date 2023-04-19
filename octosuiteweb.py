@@ -67,7 +67,10 @@ def new_octosuite_class():
             def default_response():
                 return {'error': 'Something unexpected happened. Please check your internet connection and try again.'}
             
-            json_response = response.json()  
+            json_response = response.json() or 'error'
+
+            if(json_response == 'error'):
+                return {'error' : 'User not found'}
             
             def user_profile_data():
                 profile = {
@@ -171,6 +174,140 @@ def new_octosuite_class():
             status_code = response.status_code if response.status_code == 404 or 200 else 'default'
             return handle_response[status_code]()
 
+        def user_events(self, username, limit=10):
+
+            response = requests.get(f"{self.endpoint}/users/{username}/events/public?per_page={limit}")
+            json_response = response.json() or 'error'
+            
+            if(json_response == 'error'):
+                return {'error' : 'User is not involved in any events.'}
+
+            def user_event_not_found():
+                return {'error': 'User not found.'}
+
+            def default_response():
+                return {'error': 'Something unexpected happened. Please check your internet connection and try again.'}
+            
+            def user_event_data():
+                raw_events_data = [event for event in json_response]
+
+                def populate_event_data(event):
+                    event.update({
+                        'Actor': f"{event['actor']['login']}",
+                        'Type': f"{event['type']}",
+                        'Repository': f"{event['repo']['name']}",
+                        'Created at': f"{event['created_at']}",
+                        'Payload': f"{event['payload']}"
+
+                    })
+
+                events_data = map(populate_event_data,raw_events_data)
+                return events_data 
+                  
+            handle_response = {
+                404: user_event_not_found,
+                200: user_event_data,
+                'default': default_response
+
+            }
+
+            status_code = response.status_code if response.status_code == 404 or 200 else 'default'
+            return handle_response[status_code]()
+
+        def user_subscriptions(self, username, limit=10):
+
+            details = {
+                'endpoint': self.endpoint,
+                'resource': 'subscriptions',
+                'username': username,
+                'limit': limit
+            } 
+
+            response = response_resolver(details)
+            json_response = response.json()
+
+            if(json_response == 'error'):
+                return {'error' : 'User does not have any subscriptions.'}
+
+            subscription_data = {
+                'key': 'full_name',
+                'attrs': self.repo_attrs,
+                'attr_dict': self.repo_attr_dict
+            }
+
+            handle_response = data_handler(subscription_data, 'User not found.', json_response)
+
+            status_code = response.status_code if response.status_code == 404 or 200 else 'default'
+            return handle_response[status_code]()
+        
+        def user_following(self, username, limit=10):
+
+            details = {
+                'endpoint': self.endpoint,
+                'resource': 'following',
+                'username': username,
+                'limit': limit
+            } 
+
+            response = response_resolver(details)
+            json_response = response.json()
+
+            if(json_response == 'error'):
+                return {'error' : 'User is not following any other user.'}
+
+            user_data = {
+                'key': 'login',
+                'attrs': self.user_attrs,
+                'attr_dict': self.user_attr_dict
+            }
+
+            handle_response = data_handler(user_data, 'User not found.', json_response)
+
+            status_code = response.status_code if response.status_code == 404 or 200 else 'default'
+            return handle_response[status_code]()
+
+        def user_followers(self, username, limit=10):
+
+            details = {
+                'endpoint': self.endpoint,
+                'resource': 'followers',
+                'username': username,
+                'limit': limit
+            } 
+
+            response = response_resolver(details)
+            json_response = response.json()
+
+            if(json_response == 'error'):
+                return {'error' : 'User does not have any followers.'}
+
+            user_data = {
+                'key': 'login',
+                'attrs': self.user_attrs,
+                'attr_dict': self.user_attr_dict
+            }
+
+            handle_response = data_handler(user_data, 'User not found.', json_response)
+
+            status_code = response.status_code if response.status_code == 404 or 200 else 'default'
+            
+            return handle_response[status_code]()
+        
+        def user_follows(self, following_username, followed_username):
+
+            response = requests.get(f"{self.endpoint}/users/{following_username}/following/{followed_username}")
+            
+            json_response = response.json() or 'error'
+
+            if(json_response == 'error'):
+                return {'error' : 'One or more users were not found.'}
+
+            following = response.status_code and response.status_code == 204
+            
+            return  f'POSITIVE: {following_username} is following {followed_username}' if following else f'NEGATIVE: {following_username} is not following {following_username}' 
+
+       
+        
 
     return Octo_Web
 
