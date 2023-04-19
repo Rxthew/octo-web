@@ -85,7 +85,7 @@ def new_octosuite_class():
 
             }
 
-            status_code = response.status_code if response.status_code == (404 or 200) else 'default'
+            status_code = response.status_code if response.status_code == 404 or 200 else 'default'
             return handle_response[status_code]()
         
         def get_user_email(self, username):
@@ -116,7 +116,7 @@ def new_octosuite_class():
 
             handle_response = data_handler(repo_data, 'User not found.', json_response)
 
-            status_code = response.status_code if response.status_code == (404 or 200) else 'default'
+            status_code = response.status_code if response.status_code == 404 or 200 else 'default'
             return handle_response[status_code]()
         
         def user_gists(self, username,limit=10):
@@ -142,7 +142,7 @@ def new_octosuite_class():
 
             handle_response = data_handler(gist_data, 'User not found', json_response)
 
-            status_code = response.status_code if response.status_code == (404 or 200) else 'default'
+            status_code = response.status_code if response.status_code == 404 or 200 else 'default'
             return handle_response[status_code]()
 
         def user_orgs(self, username, limit=10):
@@ -168,7 +168,7 @@ def new_octosuite_class():
 
             handle_response = data_handler(orgs_data, 'User not found', json_response)
 
-            status_code = response.status_code if response.status_code == (404 or 200) else 'default'
+            status_code = response.status_code if response.status_code == 404 or 200 else 'default'
             return handle_response[status_code]()
 
 
