@@ -5,23 +5,31 @@ from octosuite import octosuite;
 def new_octosuite_class():
 
     def response_resolver(details):
-        def unlimited_response():
-            return requests.get(f"{details.endpoint}/users/{details.username}/{details.resource}")
+        return requests.get(f"{details['endpoint']}/users/{details['username']}/{details['resource']}?per_page={details['limit']}")
 
-        def limited_response():
-            return requests.get(f"{details.endpoint}/users/{details.username}/{details.resource}?per_page={details.limit}") 
 
-        response = limited_response() if details.limit else unlimited_response()
-        return response
+    """
+    data_handler is a helper which abstracts repetitive logic. It
+    returns an object which runs a given function and returns some
+    data based on the status header coming from a given response.
 
+    Examples of 'structure_to_organise' and 'subject_data' can include
+    gists, repositories, organisations - and all their attributes.
+    Each have a different key attributes such as id, login or name
+    which is used as a reference to access other attributes.
+
+    See user profile as an example of similar - though not analogous -
+    implementation.    
+    
+    """
 
     def data_handler(structure_to_organise, error_msg, json_response):
         def organise_data():
             empty_subject_data = [sub for sub in json_response]
             
             def add_attributes(sub):
-                subject_key = sub[f'{structure_to_organise.key}']
-                subject_attrs = structure_to_organise.attrs
+                subject_key = sub[f'{structure_to_organise["key"]}']
+                subject_attrs = structure_to_organise['attrs']
                 attr_dict = structure_to_organise['attr_dict']
                 new_subject_data = {f'{subject_key}': {}}
                 for attr in subject_attrs:
@@ -33,18 +41,21 @@ def new_octosuite_class():
 
         def not_found():
             return {'error': f'{error_msg}'}
+        
+        def default_response():
+                return {'error': 'Something unexpected happened. Please check your internet connection and try again.'}
 
         return {
             200: organise_data,
             404: not_found,
-            'default': json_response
+            'default': default_response
         }
 
 
     Octo_Source = octosuite.Octosuite
     class Octo_Web(Octo_Source):
         def __init__(self):
-            super().__init__(self)
+            super().__init__()
 
         #Override applicable methods to fetch information
         def user_profile(self, username):
@@ -52,6 +63,9 @@ def new_octosuite_class():
 
             def user_profile_not_found():
                 return {'error': 'User not found.'}
+
+            def default_response():
+                return {'error': 'Something unexpected happened. Please check your internet connection and try again.'}
             
             json_response = response.json()  
             
@@ -67,11 +81,11 @@ def new_octosuite_class():
             handle_response = {
                 404: user_profile_not_found,
                 200: user_profile_data,
-                'default': json_response
+                'default': default_response
 
             }
 
-            status_code = response.status_code or 'default'
+            status_code = response.status_code if response.status_code == (404 or 200) else 'default'
             return handle_response[status_code]()
         
         def get_user_email(self, username):
@@ -82,7 +96,7 @@ def new_octosuite_class():
                     return {'f{username}': email }
             return {'error': 'User e-mail not found.'}
 
-        def user_repos(self, username, limit):
+        def user_repos(self, username, limit=10):
 
             details = {
                 'endpoint': self.endpoint,
@@ -102,10 +116,10 @@ def new_octosuite_class():
 
             handle_response = data_handler(repo_data, 'User not found.', json_response)
 
-            status_code = response.status_code or 'default'
+            status_code = response.status_code if response.status_code == (404 or 200) else 'default'
             return handle_response[status_code]()
         
-        def user_gists(self, username,limit):
+        def user_gists(self, username,limit=10):
 
             details = {
                 'endpoint': self.endpoint,
@@ -128,10 +142,10 @@ def new_octosuite_class():
 
             handle_response = data_handler(gist_data, 'User not found', json_response)
 
-            status_code = response.status_code or 'default'
+            status_code = response.status_code if response.status_code == (404 or 200) else 'default'
             return handle_response[status_code]()
 
-        def user_orgs(self, username, limit):
+        def user_orgs(self, username, limit=10):
 
             details = {
                 'endpoint': self.endpoint,
@@ -154,7 +168,7 @@ def new_octosuite_class():
 
             handle_response = data_handler(orgs_data, 'User not found', json_response)
 
-            status_code = response.status_code or 'default'
+            status_code = response.status_code if response.status_code == (404 or 200) else 'default'
             return handle_response[status_code]()
 
 
