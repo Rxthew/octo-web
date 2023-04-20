@@ -7,7 +7,8 @@ def new_octosuite_class():
     def response_resolver(request_details):
         details = request_details
         url_patterns = {
-            'user': f"{details['endpoint']}/users/{details['username']}/{details['resource']}?per_page={details['limit']}"
+            'user': f"{details['endpoint']}/users/{details['username']}/{details['resource']}?per_page={details['limit']}",
+            'search': f"{details['endpoint']}/{details['group']}?={details['query']}&per_page={details['limit']}"
 
         }
         url_to_use = url_patterns[details['pattern']]
@@ -29,9 +30,9 @@ def new_octosuite_class():
     
     """
 
-    def data_handler(structure_to_organise, error_msg, json_response):
+    def data_handler(structure_to_organise, error_msg, json_response, index=None):
         def organise_data():
-            empty_subject_data = [sub for sub in json_response]
+            empty_subject_data = [sub for sub in json_response[f'{index}']] if index else [sub for sub in json_response] 
             
             def add_attributes(sub):
                 subject_key = sub[f'{structure_to_organise["key"]}']
@@ -94,7 +95,7 @@ def new_octosuite_class():
 
             }
 
-            status_code = response.status_code if response.status_code == 404 or 200 else 'default'
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
             return handle_response[status_code]()
         
         def get_user_email(self, username):
@@ -126,7 +127,7 @@ def new_octosuite_class():
 
             handle_response = data_handler(repo_data, 'User not found.', json_response)
 
-            status_code = response.status_code if response.status_code == 404 or 200 else 'default'
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
             return handle_response[status_code]()
         
         def user_gists(self, username,limit=10):
@@ -153,7 +154,7 @@ def new_octosuite_class():
 
             handle_response = data_handler(gist_data, 'User not found', json_response)
 
-            status_code = response.status_code if response.status_code == 404 or 200 else 'default'
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
             return handle_response[status_code]()
 
         def user_orgs(self, username, limit=10):
@@ -180,7 +181,7 @@ def new_octosuite_class():
 
             handle_response = data_handler(orgs_data, 'User not found', json_response)
 
-            status_code = response.status_code if response.status_code == 404 or 200 else 'default'
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
             return handle_response[status_code]()
 
         def user_events(self, username, limit=10):
@@ -220,7 +221,7 @@ def new_octosuite_class():
 
             }
 
-            status_code = response.status_code if response.status_code == 404 or 200 else 'default'
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
             return handle_response[status_code]()
 
         def user_subscriptions(self, username, limit=10):
@@ -247,7 +248,7 @@ def new_octosuite_class():
 
             handle_response = data_handler(subscription_data, 'User not found.', json_response)
 
-            status_code = response.status_code if response.status_code == 404 or 200 else 'default'
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
             return handle_response[status_code]()
         
         def user_following(self, username, limit=10):
@@ -274,7 +275,7 @@ def new_octosuite_class():
 
             handle_response = data_handler(user_data, 'User not found.', json_response)
 
-            status_code = response.status_code if response.status_code == 404 or 200 else 'default'
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
             return handle_response[status_code]()
 
         def user_followers(self, username, limit=10):
@@ -301,7 +302,7 @@ def new_octosuite_class():
 
             handle_response = data_handler(user_data, 'User not found.', json_response)
 
-            status_code = response.status_code if response.status_code == 404 or 200 else 'default'
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
             
             return handle_response[status_code]()
         
@@ -318,10 +319,157 @@ def new_octosuite_class():
             
             return  f'POSITIVE: {following_username} is following {followed_username}' if following else f'NEGATIVE: {following_username} is not following {following_username}' 
 
-        
+        def user_search(self, query, limit=10):
+            request_details = {
+                'endpoint': self.endpoint,
+                'group': 'users',
+                'query': query,
+                'limit': limit,
+                'pattern': 'search'
+            } 
 
-       
-        
+            response = response_resolver(request_details)
+            json_response = response.json() or 'error'
+
+            if(json_response == 'error'):
+                return {'error' : 'No users were found found for that query.'}
+
+            user_data = {
+                'key': 'login',
+                'attrs': self.user_attrs,
+                'attr_dict': self.user_attr_dict
+            }
+
+            handle_response = data_handler(user_data, 'No users were found found for that query.', json_response, 'items')
+
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
+            
+            return handle_response[status_code]()
+
+        def repos_search(self, query, limit=10):
+            request_details = {
+                'endpoint': self.endpoint,
+                'group': 'repositories',
+                'query': query,
+                'limit': limit,
+                'pattern': 'search'
+            } 
+
+            response = response_resolver(request_details)
+            json_response = response.json() or 'error'
+
+            if(json_response == 'error'):
+                return {'error' : 'No repositories were found found for that query.'}
+
+            repo_data = {
+                'key': 'full_name',
+                'attrs': self.repo_attrs,
+                'attr_dict': self.repo_attr_dict
+            }
+
+            handle_response = data_handler(repo_data, 'No repositories were found found for that query.', json_response, 'items')
+
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
+            
+            return handle_response[status_code]()
+
+        def topics_search(self, query, limit=10):
+            request_details = {
+                'endpoint': self.endpoint,
+                'group': 'topics',
+                'query': query,
+                'limit': limit,
+                'pattern': 'search'
+            } 
+
+            response = response_resolver(request_details)
+            json_response = response.json()
+
+            if(json_response == 'error'):
+                return {'error' : 'No topics were found found for that query.'}
+
+            topic_data = {
+                'key': 'name',
+                'attrs': self.topic_attrs,
+                'attr_dict': self.topic_attr_dict
+            }
+
+            handle_response = data_handler(topic_data, 'No topics were found found for that query.', json_response, 'items')
+
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
+            
+            return handle_response[status_code]()
+
+        def issues_search(self, query, limit=10):
+            request_details = {
+                'endpoint': self.endpoint,
+                'group': 'issues',
+                'query': query,
+                'limit': limit,
+                'pattern': 'search'
+            } 
+
+            response = response_resolver(request_details)
+            json_response = response.json()
+
+            if(json_response == 'error'):
+                return {'error' : 'No issues were found found for that query.'}
+
+            issue_data = {
+                'key': 'title',
+                'attrs': self.repo_issues_attrs,
+                'attr_dict': self.repo_issues_attr_dict
+            }
+
+            handle_response = data_handler(issue_data, 'No issues were found found for that query.', json_response, 'items')
+
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
+            
+            return handle_response[status_code]()
+
+        def commits_search(self, query, limit=10):
+            response = requests.get(f"{self.endpoint}/search/commits?q={query}/&per_page={limit}")
+            json_response = response.json() or 'error'
+            
+            if(json_response == 'error'):
+                return {'error' : 'No commits were found.'}
+
+            def commit_not_found():
+                return {'error': 'No commits were found.'}
+
+            def default_response():
+                return {'error': 'Something unexpected happened. Please check your internet connection and try again.'}
+            
+            def commit_data():
+                raw_commit_data = [commit for commit in json_response['items']]
+
+                def populate_commit_data(commit):
+                    commit_data = {
+                        commit['commit']['tree']['sha'] : {}
+                    }
+                    commit_search_tree = commit_data[f"{commit['commit']['tree']['sha']}"]
+                    commit_search_tree.update({
+                        'Author': f"{commit['commit']['author']['name']}",
+                        'Username': f"{commit['author']['login']}",
+                        'Email': f"{commit['commit']['author']['email']}",
+                        'Commiter': f"{commit['commit']['committer']['name']}",
+                        'Repository': f"{commit['repository']['full_name']}",
+                        'URL': f"{commit['html_url']}"
+
+                    })
+
+                commits_data = map(populate_commit_data,raw_commit_data)
+                return commits_data 
+                  
+            handle_response = {
+                404: commit_not_found,
+                200: commit_data,
+                'default': default_response
+
+            }
+
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
+            return handle_response[status_code]()
 
     return Octo_Web
 
