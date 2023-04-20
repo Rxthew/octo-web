@@ -8,7 +8,8 @@ def new_octosuite_class():
         details = request_details
         url_patterns = {
             'user': f"{details['endpoint']}/users/{details['username']}/{details['resource']}?per_page={details['limit']}",
-            'search': f"{details['endpoint']}/{details['group']}?={details['query']}&per_page={details['limit']}"
+            'search': f"{details['endpoint']}/{details['group']}?={details['query']}&per_page={details['limit']}",
+            'organisation': f"{details['endpoint']}/orgs/{details['organisation']}/{details['resource']}?per_page={details['limit']}",
 
         }
         url_to_use = url_patterns[details['pattern']]
@@ -65,6 +66,123 @@ def new_octosuite_class():
             super().__init__()
 
         #Override applicable methods to fetch information
+
+        def org_events(self, organisation, limit=10):
+
+            request_details = {
+                'endpoint': self.endpoint,
+                'resource': 'events',
+                'organisation': organisation,
+                'limit': limit,
+                'pattern': 'organisation'
+            }
+
+            response = response_resolver(request_details)
+            json_response = response.json() or 'error'
+            
+            def org_event_not_found():
+                return {'error': 'Organisation not found.'}
+
+            def default_response():
+                return {'error': 'Something unexpected happened. Please check your internet connection and try again.'}
+            
+            def org_event_data():
+                raw_events_data = [event for event in json_response]
+
+                def populate_event_data(event):
+                    event.update({
+                        'Type': f"{event['type']}",
+                        'Created at': f"{event['created_at']}",
+                        'Payload': f"{event['payload']}"
+                    })
+
+                events_data = map(populate_event_data,raw_events_data)
+                return events_data 
+                  
+            handle_response = {
+                404: org_event_not_found,
+                200: org_event_data,
+                'default': default_response
+
+            }
+
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
+            return handle_response[status_code]()
+        
+        def org_member(self, organisation, username):
+
+            response = requests.get(f"{self.endpoint}/orgs/{organisation}/public_members/{username}")
+            
+            json_response = response.json() or 'error'
+
+            if(json_response == 'error'):
+                return {'error' : 'Organisation or user was not found.'}
+
+            member = response.status_code and response.status_code == 204
+            
+            return  f'POSITIVE: User {username} is a public member of {organisation}' if member else f'NEGATIVE: User {username} is not a public member of {organisation}' 
+
+        def org_profile(self, organisation):
+            response = requests.get(f"{self.endpoint}/orgs/{organisation}")
+
+            def organisation_profile_not_found():
+                return {'error': 'Organisation not found.'}
+
+            def default_response():
+                return {'error': 'Something unexpected happened. Please check your internet connection and try again.'}
+            
+            json_response = response.json() or 'error'
+
+            if(json_response == 'error'):
+                return {'error' : 'Organisation not found.'}
+            
+            def organisation_profile_data():
+                profile = {
+                    'name': json_response['name'],
+                }
+                for attr in self.org_attrs:
+                    profile.update({f'{self.org_attr_dict[attr]}' : json_response[attr]})
+                
+                return profile 
+                  
+            handle_response = {
+                404: organisation_profile_not_found,
+                200: organisation_profile_data,
+                'default': default_response
+
+            }
+
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
+            return handle_response[status_code]()
+
+
+        def org_repos(self, organisation, limit=10):
+
+            request_details = {
+                'endpoint': self.endpoint,
+                'resource': 'repos',
+                'organisation': organisation,
+                'limit': limit,
+                'pattern': 'organisation'
+            }
+
+            response = response_resolver(request_details)
+            json_response = response.json() or 'error'
+            
+            if(json_response == 'error'):
+                return {'error' : 'Organisation does not have repositories.'}
+            
+            repos_data = {
+                'key': 'full_name',
+                'attrs': self.repo_attrs,
+                'attr_dict': self.repo_attr_dict
+            }
+
+            handle_response = data_handler(repos_data, 'Organisation not found', json_response)
+
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
+            return handle_response[status_code]()
+
         def user_profile(self, username):
             response = requests.get(f"{self.endpoint}/users/{username}")
 
@@ -117,7 +235,10 @@ def new_octosuite_class():
             } 
 
             response = response_resolver(request_details)
-            json_response = response.json()
+            json_response = response.json() or 'error'
+
+            if(json_response == 'error'):
+                return {'error' : 'User does not have repositories.'}
 
             repo_data = {
                 'key': 'full_name',
@@ -202,7 +323,10 @@ def new_octosuite_class():
                 raw_events_data = [event for event in json_response]
 
                 def populate_event_data(event):
-                    event.update({
+                    event_data = {
+                        event['id'] : {}
+                    }
+                    event_data[f'{event["id"]}'].update({
                         'Actor': f"{event['actor']['login']}",
                         'Type': f"{event['type']}",
                         'Repository': f"{event['repo']['name']}",
@@ -454,7 +578,8 @@ def new_octosuite_class():
                         'Email': f"{commit['commit']['author']['email']}",
                         'Commiter': f"{commit['commit']['committer']['name']}",
                         'Repository': f"{commit['repository']['full_name']}",
-                        'URL': f"{commit['html_url']}"
+                        'URL': f"{commit['html_url']}",
+                        'message': f"{commit['commit']['message']}"
 
                     })
 
