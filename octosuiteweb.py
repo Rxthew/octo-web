@@ -7,10 +7,10 @@ def new_octosuite_class():
     def response_resolver(request_details):
         details = request_details
         url_patterns = {
-            'user': f"{details['endpoint']}/users/{details['username']}/{details['resource']}?per_page={details['limit']}",
-            'search': f"{details['endpoint']}/{details['group']}?={details['query']}&per_page={details['limit']}",
             'organisation': f"{details['endpoint']}/orgs/{details['organisation']}/{details['resource']}?per_page={details['limit']}",
-
+            'repository': f"{details['endpoint']}/repos/{details['username']}/{details['repo_name']}/{details['resource']}?per_page={details['limit']}",
+            'search': f"{details['endpoint']}/{details['group']}?={details['query']}&per_page={details['limit']}",
+            'user': f"{details['endpoint']}/users/{details['username']}/{details['resource']}?per_page={details['limit']}",
         }
         url_to_use = url_patterns[details['pattern']]
         return requests.get(url_to_use)
@@ -66,6 +66,105 @@ def new_octosuite_class():
             super().__init__()
 
         #Override applicable methods to fetch information
+
+        def about(self):
+            about_text = f"""
+            OCTOSUITE © 2023 Richard Mwewa
+                    
+            An advanced and lightning fast framework for gathering open-source intelligence on GitHub users and organizations.
+            Read the wiki: https://github.com/bellingcat/octosuite/wiki
+            GitHub REST API documentation: https://docs.github.com/rest
+            """
+            return about_text
+
+        def author(self):
+            author = {
+                'name': 'Richard Mwewa (Ritchie)',
+            }
+            for author_key, author_value in self.author_dict.items():
+                author.update({f'{author_key}' : f'{author_value}'})
+            
+            return author
+
+        def commits_search(self, query, limit=10):
+            response = requests.get(f"{self.endpoint}/search/commits?q={query}/&per_page={limit}")
+            json_response = response.json() or 'error'
+            
+            if(json_response == 'error'):
+                return {'error' : 'No commits were found.'}
+
+            def commit_not_found():
+                return {'error': 'No commits were found.'}
+
+            def default_response():
+                return {'error': 'Something unexpected happened. Please check your internet connection and try again.'}
+            
+            def commit_data():
+                raw_commit_data = [commit for commit in json_response['items']]
+
+                def populate_commit_data(commit):
+                    commit_data = {
+                        commit['commit']['tree']['sha'] : {}
+                    }
+                    commit_search_tree = commit_data[f"{commit['commit']['tree']['sha']}"]
+                    commit_search_tree.update({
+                        'Author': f"{commit['commit']['author']['name']}",
+                        'Username': f"{commit['author']['login']}",
+                        'Email': f"{commit['commit']['author']['email']}",
+                        'Commiter': f"{commit['commit']['committer']['name']}",
+                        'Repository': f"{commit['repository']['full_name']}",
+                        'URL': f"{commit['html_url']}",
+                        'message': f"{commit['commit']['message']}"
+
+                    })
+
+                commits_data = map(populate_commit_data,raw_commit_data)
+                return commits_data 
+                  
+            handle_response = {
+                404: commit_not_found,
+                200: commit_data,
+                'default': default_response
+
+            }
+
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
+            return handle_response[status_code]()
+
+        def get_user_email(self, username):
+            repos = self.get_repos_from_username(username)
+            for repo in repos:
+                email = self.get_email_from_contributor(username, repo, username)
+                if email:
+                    return {'f{username}': email }
+            return {'error': 'User e-mail not found.'}
+
+        def issues_search(self, query, limit=10):
+            request_details = {
+                'endpoint': self.endpoint,
+                'group': 'issues',
+                'query': query,
+                'limit': limit,
+                'pattern': 'search'
+            } 
+
+            response = response_resolver(request_details)
+            json_response = response.json()
+
+            if(json_response == 'error'):
+                return {'error' : 'No issues were found found for that query.'}
+
+            issue_data = {
+                'key': 'title',
+                'attrs': self.repo_issues_attrs,
+                'attr_dict': self.repo_issues_attr_dict
+            }
+
+            handle_response = data_handler(issue_data, 'No issues were found found for that query.', json_response, 'items')
+
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
+            
+            return handle_response[status_code]()
 
         def org_events(self, organisation, limit=10):
 
@@ -123,6 +222,7 @@ def new_octosuite_class():
             return  f'POSITIVE: User {username} is a public member of {organisation}' if member else f'NEGATIVE: User {username} is not a public member of {organisation}' 
 
         def org_profile(self, organisation):
+
             response = requests.get(f"{self.endpoint}/orgs/{organisation}")
 
             def organisation_profile_not_found():
@@ -182,293 +282,202 @@ def new_octosuite_class():
 
             status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
             return handle_response[status_code]()
+        
+        def path_contents(self, username, repo_name,path_name):
+            
+            response = requests.get(f"{self.endpoint}/repos/{username}/{repo_name}/contents/{path_name}")
 
-        def user_profile(self, username):
-            response = requests.get(f"{self.endpoint}/users/{username}")
+            json_response = response.json() or 'error'
 
-            def user_profile_not_found():
-                return {'error': 'User not found.'}
+            if(json_response == 'error'):
+                return {'error' : 'Path content not found.'}
+
+            def path_content_data():
+                raw_content = [{content_count : content} for content_count, content in enumerate(json_response,start=1)]
+
+                def add_path_attributes(content):
+                    raw_value = content.items()[0]
+                    count = content.keys()[0]
+                    path_contents = {
+                        'name': raw_value['name'],
+                        'count': count                  
+                    }     
+                    for attr in self.path_attrs:
+                        path_contents.update({
+                            f"{self.path_attr_dict[attr]}": raw_value[attr]
+                        })
+                    return path_contents
+
+                new_content = map(add_path_attributes,raw_content)
+                return new_content
+                  
+            def path_not_found():
+                return {'error': 'Path contents not found.'}
 
             def default_response():
                 return {'error': 'Something unexpected happened. Please check your internet connection and try again.'}
             
-            json_response = response.json() or 'error'
-
-            if(json_response == 'error'):
-                return {'error' : 'User not found'}
             
-            def user_profile_data():
-                profile = {
-                    'name': json_response['name'],
-                }
-                for attr in self.profile_attrs:
-                    profile.update({f'{self.profile_attr_dict[attr]}' : json_response[attr]})
-                
-                return profile 
-                  
             handle_response = {
-                404: user_profile_not_found,
-                200: user_profile_data,
-                'default': default_response
-
+                    404: path_not_found,
+                    200: path_content_data,
+                    'default': default_response
             }
 
             status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
             return handle_response[status_code]()
-        
-        def get_user_email(self, username):
-            repos = self.get_repos_from_username(username)
-            for repo in repos:
-                email = self.get_email_from_contributor(username, repo, username)
-                if email:
-                    return {'f{username}': email }
-            return {'error': 'User e-mail not found.'}
 
-        def user_repos(self, username, limit=10):
+        def repo_contributors(self, username, repo_name, limit=10):
 
             request_details = {
                 'endpoint': self.endpoint,
-                'resource': 'repos',
+                'resource': 'contributors',
                 'username': username,
+                'repo_name': repo_name,
                 'limit': limit,
-                'pattern': 'user'
-            } 
+                'pattern': 'repository'
+            }
 
             response = response_resolver(request_details)
             json_response = response.json() or 'error'
-
+            
             if(json_response == 'error'):
-                return {'error' : 'User does not have repositories.'}
+                return {'error' : 'Repository does not have contributors.'}
+            
+            repos_data = {
+                'key': 'login',
+                'attrs': self.user_attrs,
+                'attr_dict': self.user_attr_dict
+            }
 
-            repo_data = {
+            handle_response = data_handler(repos_data, 'Repository or user not found', json_response)
+
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
+            return handle_response[status_code]()
+
+        def repo_forks(self, username, repo_name,limit=10):
+
+            request_details = {
+                'endpoint': self.endpoint,
+                'resource': 'forks',
+                'username': username,
+                'repo_name': repo_name,
+                'limit': limit,
+                'pattern': 'repository'
+            }
+
+            response = response_resolver(request_details)
+            json_response = response.json() or 'error'
+            
+            if(json_response == 'error'):
+                return {'error' : 'Repository does not have forks.'}
+
+            repos_data = {
                 'key': 'full_name',
                 'attrs': self.repo_attrs,
                 'attr_dict': self.repo_attr_dict
             }
 
-            handle_response = data_handler(repo_data, 'User not found.', json_response)
+            handle_response = data_handler(repos_data, 'Repository or user not found', json_response)
 
             status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
             return handle_response[status_code]()
-        
-        def user_gists(self, username,limit=10):
+
+        def repo_issues(self, username, repo_name, limit=10):
+
+            issues_attrs = self.repo_issues_attrs.copy()
+            issues_attrs.append('body')
+
+            issues_attr_dict = self.repo_issues_attr_dict.copy()
+            issues_attr_dict['body'] = 'Body'
 
             request_details = {
                 'endpoint': self.endpoint,
-                'resource': 'gists',
+                'resource': 'issues',
                 'username': username,
+                'repo_name': repo_name,
                 'limit': limit,
-                'pattern': 'user'
+                'pattern': 'repository'
             }
 
             response = response_resolver(request_details)
             json_response = response.json() or 'error'
             
             if(json_response == 'error'):
-                return {'error' : 'User does not have gists'}
+                return {'error' : 'Repository does not have open issues.'}
             
-            gist_data = {
-                'key': 'id',
-                'attrs': self.gists_attrs,
-                'attr_dict': self.gists_attr_dict
+            repos_data = {
+                'key': 'name',
+                'attrs': issues_attrs,
+                'attr_dict': issues_attr_dict
             }
 
-            handle_response = data_handler(gist_data, 'User not found', json_response)
+            handle_response = data_handler(repos_data, 'Repository or user not found', json_response)
 
             status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
-            return handle_response[status_code]()
+            return handle_response[status_code]()  
 
-        def user_orgs(self, username, limit=10):
+        def repo_releases(self, username, repo_name, limit=10):
+
+            releases_attrs = self.repo_releases_attrs.copy()
+            releases_attrs.append('body')
+
+            releases_attr_dict = self.repo_releases_attr_dict.copy()
+            releases_attr_dict['body'] = 'Body'
 
             request_details = {
                 'endpoint': self.endpoint,
-                'resource': 'orgs',
+                'resource': 'releases',
                 'username': username,
+                'repo_name': repo_name,
                 'limit': limit,
-                'pattern': 'user'
+                'pattern': 'repository'
             }
 
             response = response_resolver(request_details)
             json_response = response.json() or 'error'
             
             if(json_response == 'error'):
-                return {'error' : 'User neither belongs to nor owns any organisations'}
+                return {'error' : 'Repository does not have releases.'}
             
-            orgs_data = {
-                'key': 'login',
-                'attrs': self.org_attrs,
-                'attr_dict': self.org_attr_dict
+            repos_data = {
+                'key': 'name',
+                'attrs': releases_attrs,
+                'attr_dict': releases_attr_dict
             }
 
-            handle_response = data_handler(orgs_data, 'User not found', json_response)
+            handle_response = data_handler(repos_data, 'Repository or user not found', json_response)
 
             status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
-            return handle_response[status_code]()
+            return handle_response[status_code]()  
 
-        def user_events(self, username, limit=10):
+        def repo_stargazers(self, username, repo_name, limit=10):
 
-            response = requests.get(f"{self.endpoint}/users/{username}/events/public?per_page={limit}")
+            request_details = {
+                'endpoint': self.endpoint,
+                'resource': 'stargazers',
+                'username': username,
+                'repo_name': repo_name,
+                'limit': limit,
+                'pattern': 'repository'
+            }
+
+            response = response_resolver(request_details)
             json_response = response.json() or 'error'
             
             if(json_response == 'error'):
-                return {'error' : 'User is not involved in any events.'}
-
-            def user_event_not_found():
-                return {'error': 'User not found.'}
-
-            def default_response():
-                return {'error': 'Something unexpected happened. Please check your internet connection and try again.'}
+                return {'error' : 'Repository does not have stargazers.'}
             
-            def user_event_data():
-                raw_events_data = [event for event in json_response]
-
-                def populate_event_data(event):
-                    event_data = {
-                        event['id'] : {}
-                    }
-                    event_data[f'{event["id"]}'].update({
-                        'Actor': f"{event['actor']['login']}",
-                        'Type': f"{event['type']}",
-                        'Repository': f"{event['repo']['name']}",
-                        'Created at': f"{event['created_at']}",
-                        'Payload': f"{event['payload']}"
-
-                    })
-
-                events_data = map(populate_event_data,raw_events_data)
-                return events_data 
-                  
-            handle_response = {
-                404: user_event_not_found,
-                200: user_event_data,
-                'default': default_response
-
-            }
-
-            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
-            return handle_response[status_code]()
-
-        def user_subscriptions(self, username, limit=10):
-
-            request_details = {
-                'endpoint': self.endpoint,
-                'resource': 'subscriptions',
-                'username': username,
-                'limit': limit,
-                'pattern': 'user'
-            } 
-
-            response = response_resolver(request_details)
-            json_response = response.json()
-
-            if(json_response == 'error'):
-                return {'error' : 'User does not have any subscriptions.'}
-
-            subscription_data = {
-                'key': 'full_name',
-                'attrs': self.repo_attrs,
-                'attr_dict': self.repo_attr_dict
-            }
-
-            handle_response = data_handler(subscription_data, 'User not found.', json_response)
-
-            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
-            return handle_response[status_code]()
-        
-        def user_following(self, username, limit=10):
-
-            request_details = {
-                'endpoint': self.endpoint,
-                'resource': 'following',
-                'username': username,
-                'limit': limit,
-                'pattern': 'user'
-            } 
-
-            response = response_resolver(request_details)
-            json_response = response.json()
-
-            if(json_response == 'error'):
-                return {'error' : 'User is not following any other user.'}
-
-            user_data = {
+            repos_data = {
                 'key': 'login',
                 'attrs': self.user_attrs,
                 'attr_dict': self.user_attr_dict
             }
 
-            handle_response = data_handler(user_data, 'User not found.', json_response)
+            handle_response = data_handler(repos_data, 'Repository or user not found', json_response)
 
             status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
-            return handle_response[status_code]()
-
-        def user_followers(self, username, limit=10):
-
-            request_details = {
-                'endpoint': self.endpoint,
-                'resource': 'followers',
-                'username': username,
-                'limit': limit,
-                'pattern': 'user'
-            } 
-
-            response = response_resolver(request_details)
-            json_response = response.json()
-
-            if(json_response == 'error'):
-                return {'error' : 'User does not have any followers.'}
-
-            user_data = {
-                'key': 'login',
-                'attrs': self.user_attrs,
-                'attr_dict': self.user_attr_dict
-            }
-
-            handle_response = data_handler(user_data, 'User not found.', json_response)
-
-            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
-            
-            return handle_response[status_code]()
-        
-        def user_follows(self, following_username, followed_username):
-
-            response = requests.get(f"{self.endpoint}/users/{following_username}/following/{followed_username}")
-            
-            json_response = response.json() or 'error'
-
-            if(json_response == 'error'):
-                return {'error' : 'One or more users were not found.'}
-
-            following = response.status_code and response.status_code == 204
-            
-            return  f'POSITIVE: {following_username} is following {followed_username}' if following else f'NEGATIVE: {following_username} is not following {following_username}' 
-
-        def user_search(self, query, limit=10):
-            request_details = {
-                'endpoint': self.endpoint,
-                'group': 'users',
-                'query': query,
-                'limit': limit,
-                'pattern': 'search'
-            } 
-
-            response = response_resolver(request_details)
-            json_response = response.json() or 'error'
-
-            if(json_response == 'error'):
-                return {'error' : 'No users were found found for that query.'}
-
-            user_data = {
-                'key': 'login',
-                'attrs': self.user_attrs,
-                'attr_dict': self.user_attr_dict
-            }
-
-            handle_response = data_handler(user_data, 'No users were found found for that query.', json_response, 'items')
-
-            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
-            
-            return handle_response[status_code]()
+            return handle_response[status_code]()              
 
         def repos_search(self, query, limit=10):
             request_details = {
@@ -524,77 +533,285 @@ def new_octosuite_class():
             
             return handle_response[status_code]()
 
-        def issues_search(self, query, limit=10):
-            request_details = {
-                'endpoint': self.endpoint,
-                'group': 'issues',
-                'query': query,
-                'limit': limit,
-                'pattern': 'search'
-            } 
+        def user_events(self, username, limit=10):
 
-            response = response_resolver(request_details)
-            json_response = response.json()
-
-            if(json_response == 'error'):
-                return {'error' : 'No issues were found found for that query.'}
-
-            issue_data = {
-                'key': 'title',
-                'attrs': self.repo_issues_attrs,
-                'attr_dict': self.repo_issues_attr_dict
-            }
-
-            handle_response = data_handler(issue_data, 'No issues were found found for that query.', json_response, 'items')
-
-            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
-            
-            return handle_response[status_code]()
-
-        def commits_search(self, query, limit=10):
-            response = requests.get(f"{self.endpoint}/search/commits?q={query}/&per_page={limit}")
+            response = requests.get(f"{self.endpoint}/users/{username}/events/public?per_page={limit}")
             json_response = response.json() or 'error'
             
             if(json_response == 'error'):
-                return {'error' : 'No commits were found.'}
+                return {'error' : 'User is not involved in any events.'}
 
-            def commit_not_found():
-                return {'error': 'No commits were found.'}
+            def user_event_not_found():
+                return {'error': 'User not found.'}
 
             def default_response():
                 return {'error': 'Something unexpected happened. Please check your internet connection and try again.'}
             
-            def commit_data():
-                raw_commit_data = [commit for commit in json_response['items']]
+            def user_event_data():
+                raw_events_data = [event for event in json_response]
 
-                def populate_commit_data(commit):
-                    commit_data = {
-                        commit['commit']['tree']['sha'] : {}
+                def populate_event_data(event):
+                    event_data = {
+                        event['id'] : {}
                     }
-                    commit_search_tree = commit_data[f"{commit['commit']['tree']['sha']}"]
-                    commit_search_tree.update({
-                        'Author': f"{commit['commit']['author']['name']}",
-                        'Username': f"{commit['author']['login']}",
-                        'Email': f"{commit['commit']['author']['email']}",
-                        'Commiter': f"{commit['commit']['committer']['name']}",
-                        'Repository': f"{commit['repository']['full_name']}",
-                        'URL': f"{commit['html_url']}",
-                        'message': f"{commit['commit']['message']}"
+                    event_data[f'{event["id"]}'].update({
+                        'Actor': f"{event['actor']['login']}",
+                        'Type': f"{event['type']}",
+                        'Repository': f"{event['repo']['name']}",
+                        'Created at': f"{event['created_at']}",
+                        'Payload': f"{event['payload']}"
 
                     })
 
-                commits_data = map(populate_commit_data,raw_commit_data)
-                return commits_data 
+                events_data = map(populate_event_data,raw_events_data)
+                return events_data 
                   
             handle_response = {
-                404: commit_not_found,
-                200: commit_data,
+                404: user_event_not_found,
+                200: user_event_data,
                 'default': default_response
 
             }
 
             status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
             return handle_response[status_code]()
+
+        def user_followers(self, username, limit=10):
+
+            request_details = {
+                'endpoint': self.endpoint,
+                'resource': 'followers',
+                'username': username,
+                'limit': limit,
+                'pattern': 'user'
+            } 
+
+            response = response_resolver(request_details)
+            json_response = response.json()
+
+            if(json_response == 'error'):
+                return {'error' : 'User does not have any followers.'}
+
+            user_data = {
+                'key': 'login',
+                'attrs': self.user_attrs,
+                'attr_dict': self.user_attr_dict
+            }
+
+            handle_response = data_handler(user_data, 'User not found.', json_response)
+
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
+            
+            return handle_response[status_code]()
+        
+        def user_following(self, username, limit=10):
+
+            request_details = {
+                'endpoint': self.endpoint,
+                'resource': 'following',
+                'username': username,
+                'limit': limit,
+                'pattern': 'user'
+            } 
+
+            response = response_resolver(request_details)
+            json_response = response.json()
+
+            if(json_response == 'error'):
+                return {'error' : 'User is not following any other user.'}
+
+            user_data = {
+                'key': 'login',
+                'attrs': self.user_attrs,
+                'attr_dict': self.user_attr_dict
+            }
+
+            handle_response = data_handler(user_data, 'User not found.', json_response)
+
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
+            return handle_response[status_code]()
+        
+        def user_follows(self, following_username, followed_username):
+
+            response = requests.get(f"{self.endpoint}/users/{following_username}/following/{followed_username}")
+            
+            json_response = response.json() or 'error'
+
+            if(json_response == 'error'):
+                return {'error' : 'One or more users were not found.'}
+
+            following = response.status_code and response.status_code == 204
+            
+            return  f'POSITIVE: {following_username} is following {followed_username}' if following else f'NEGATIVE: {following_username} is not following {following_username}' 
+
+        def user_gists(self, username,limit=10):
+
+            request_details = {
+                'endpoint': self.endpoint,
+                'resource': 'gists',
+                'username': username,
+                'limit': limit,
+                'pattern': 'user'
+            }
+
+            response = response_resolver(request_details)
+            json_response = response.json() or 'error'
+            
+            if(json_response == 'error'):
+                return {'error' : 'User does not have gists'}
+            
+            gist_data = {
+                'key': 'id',
+                'attrs': self.gists_attrs,
+                'attr_dict': self.gists_attr_dict
+            }
+
+            handle_response = data_handler(gist_data, 'User not found', json_response)
+
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
+            return handle_response[status_code]()
+
+        def user_orgs(self, username, limit=10):
+
+            request_details = {
+                'endpoint': self.endpoint,
+                'resource': 'orgs',
+                'username': username,
+                'limit': limit,
+                'pattern': 'user'
+            }
+
+            response = response_resolver(request_details)
+            json_response = response.json() or 'error'
+            
+            if(json_response == 'error'):
+                return {'error' : 'User neither belongs to nor owns any organisations'}
+            
+            orgs_data = {
+                'key': 'login',
+                'attrs': self.org_attrs,
+                'attr_dict': self.org_attr_dict
+            }
+
+            handle_response = data_handler(orgs_data, 'User not found', json_response)
+
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
+            return handle_response[status_code]()
+
+        def user_profile(self, username):
+            response = requests.get(f"{self.endpoint}/users/{username}")
+
+            def user_profile_not_found():
+                return {'error': 'User not found.'}
+
+            def default_response():
+                return {'error': 'Something unexpected happened. Please check your internet connection and try again.'}
+            
+            json_response = response.json() or 'error'
+
+            if(json_response == 'error'):
+                return {'error' : 'User not found'}
+            
+            def user_profile_data():
+                profile = {
+                    'name': json_response['name'],
+                }
+                for attr in self.profile_attrs:
+                    profile.update({f'{self.profile_attr_dict[attr]}' : json_response[attr]})
+                
+                return profile 
+                  
+            handle_response = {
+                404: user_profile_not_found,
+                200: user_profile_data,
+                'default': default_response
+
+            }
+
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
+            return handle_response[status_code]()
+
+        def user_repos(self, username, limit=10):
+
+            request_details = {
+                'endpoint': self.endpoint,
+                'resource': 'repos',
+                'username': username,
+                'limit': limit,
+                'pattern': 'user'
+            } 
+
+            response = response_resolver(request_details)
+            json_response = response.json() or 'error'
+
+            if(json_response == 'error'):
+                return {'error' : 'User does not have repositories.'}
+
+            repo_data = {
+                'key': 'full_name',
+                'attrs': self.repo_attrs,
+                'attr_dict': self.repo_attr_dict
+            }
+
+            handle_response = data_handler(repo_data, 'User not found.', json_response)
+
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
+            return handle_response[status_code]()
+
+        def user_search(self, query, limit=10):
+            request_details = {
+                'endpoint': self.endpoint,
+                'group': 'users',
+                'query': query,
+                'limit': limit,
+                'pattern': 'search'
+            } 
+
+            response = response_resolver(request_details)
+            json_response = response.json() or 'error'
+
+            if(json_response == 'error'):
+                return {'error' : 'No users were found found for that query.'}
+
+            user_data = {
+                'key': 'login',
+                'attrs': self.user_attrs,
+                'attr_dict': self.user_attr_dict
+            }
+
+            handle_response = data_handler(user_data, 'No users were found found for that query.', json_response, 'items')
+
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
+            
+            return handle_response[status_code]()
+
+        def user_subscriptions(self, username, limit=10):
+
+            request_details = {
+                'endpoint': self.endpoint,
+                'resource': 'subscriptions',
+                'username': username,
+                'limit': limit,
+                'pattern': 'user'
+            } 
+
+            response = response_resolver(request_details)
+            json_response = response.json()
+
+            if(json_response == 'error'):
+                return {'error' : 'User does not have any subscriptions.'}
+
+            subscription_data = {
+                'key': 'full_name',
+                'attrs': self.repo_attrs,
+                'attr_dict': self.repo_attr_dict
+            }
+
+            handle_response = data_handler(subscription_data, 'User not found.', json_response)
+
+            status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
+            return handle_response[status_code]()
+
 
     return Octo_Web
 
