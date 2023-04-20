@@ -4,8 +4,14 @@ from octosuite import octosuite;
 #Inherit original octosuite class and make applicable changes.
 def new_octosuite_class():
 
-    def response_resolver(details):
-        return requests.get(f"{details['endpoint']}/users/{details['username']}/{details['resource']}?per_page={details['limit']}")
+    def response_resolver(request_details):
+        details = request_details
+        url_patterns = {
+            'user': f"{details['endpoint']}/users/{details['username']}/{details['resource']}?per_page={details['limit']}"
+
+        }
+        url_to_use = url_patterns[details['pattern']]
+        return requests.get(url_to_use)
 
 
     """
@@ -101,14 +107,15 @@ def new_octosuite_class():
 
         def user_repos(self, username, limit=10):
 
-            details = {
+            request_details = {
                 'endpoint': self.endpoint,
                 'resource': 'repos',
                 'username': username,
-                'limit': limit
+                'limit': limit,
+                'pattern': 'user'
             } 
 
-            response = response_resolver(details)
+            response = response_resolver(request_details)
             json_response = response.json()
 
             repo_data = {
@@ -124,14 +131,15 @@ def new_octosuite_class():
         
         def user_gists(self, username,limit=10):
 
-            details = {
+            request_details = {
                 'endpoint': self.endpoint,
                 'resource': 'gists',
                 'username': username,
-                'limit': limit
+                'limit': limit,
+                'pattern': 'user'
             }
 
-            response = response_resolver(details)
+            response = response_resolver(request_details)
             json_response = response.json() or 'error'
             
             if(json_response == 'error'):
@@ -150,14 +158,15 @@ def new_octosuite_class():
 
         def user_orgs(self, username, limit=10):
 
-            details = {
+            request_details = {
                 'endpoint': self.endpoint,
                 'resource': 'orgs',
                 'username': username,
-                'limit': limit
+                'limit': limit,
+                'pattern': 'user'
             }
 
-            response = response_resolver(details)
+            response = response_resolver(request_details)
             json_response = response.json() or 'error'
             
             if(json_response == 'error'):
@@ -216,14 +225,15 @@ def new_octosuite_class():
 
         def user_subscriptions(self, username, limit=10):
 
-            details = {
+            request_details = {
                 'endpoint': self.endpoint,
                 'resource': 'subscriptions',
                 'username': username,
-                'limit': limit
+                'limit': limit,
+                'pattern': 'user'
             } 
 
-            response = response_resolver(details)
+            response = response_resolver(request_details)
             json_response = response.json()
 
             if(json_response == 'error'):
@@ -242,14 +252,15 @@ def new_octosuite_class():
         
         def user_following(self, username, limit=10):
 
-            details = {
+            request_details = {
                 'endpoint': self.endpoint,
                 'resource': 'following',
                 'username': username,
-                'limit': limit
+                'limit': limit,
+                'pattern': 'user'
             } 
 
-            response = response_resolver(details)
+            response = response_resolver(request_details)
             json_response = response.json()
 
             if(json_response == 'error'):
@@ -268,14 +279,15 @@ def new_octosuite_class():
 
         def user_followers(self, username, limit=10):
 
-            details = {
+            request_details = {
                 'endpoint': self.endpoint,
                 'resource': 'followers',
                 'username': username,
-                'limit': limit
+                'limit': limit,
+                'pattern': 'user'
             } 
 
-            response = response_resolver(details)
+            response = response_resolver(request_details)
             json_response = response.json()
 
             if(json_response == 'error'):
@@ -305,6 +317,8 @@ def new_octosuite_class():
             following = response.status_code and response.status_code == 204
             
             return  f'POSITIVE: {following_username} is following {followed_username}' if following else f'NEGATIVE: {following_username} is not following {following_username}' 
+
+        
 
        
         
