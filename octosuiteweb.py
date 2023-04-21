@@ -1,7 +1,246 @@
 import requests
-from octosuite import octosuite;
+from requests.auth import HTTPBasicAuth
 
-#Inherit original octosuite class and make applicable changes.
+
+#Original Octosuite class lifted from repository pared down to relevant properties.
+class Octosuite:
+    def __init__(self):
+        # API endpoint
+        self.endpoint = 'https://api.github.com'
+
+        # Path attribute
+        self.path_attrs = ['size', 'type', 'path', 'sha', 'html_url']
+        # Path attribute dictionary
+        self.path_attr_dict = {'size': 'Size (bytes)',
+                               'type': 'Type',
+                               'path': 'Path',
+                               'sha': 'SHA',
+                               'html_url': 'URL'}
+
+        # organisation attributes
+        self.org_attrs = ['avatar_url', 'login', 'id', 'node_id', 'email', 'description', 'blog', 'location',
+                          'followers',
+                          'following', 'twitter_username', 'public_gists', 'public_repos', 'type', 'is_verified',
+                          'has_organisation_projects', 'has_repository_projects', 'created_at', 'updated_at']
+        # organisation attribute dictionary
+        self.org_attr_dict = {'avatar_url': 'Profile Photo',
+                              'login': 'Username',
+                              'id': 'ID',
+                              'node_id': 'Node ID',
+                              'email': 'Email',
+                              'description': 'About',
+                              'location': 'Location',
+                              'blog': 'Blog',
+                              'followers': 'Followers',
+                              'following': 'Following',
+                              'twitter_username': 'Twitter handle',
+                              'public_gists': 'Gists',
+                              'public_repos': 'Repositories',
+                              'type': 'Account type',
+                              'is_verified': 'Is verified?',
+                              'has_organisation_projects': 'Has organisation projects?',
+                              'has_repository_projects': 'Has repository projects?',
+                              'created_at': 'Created at',
+                              'updated_at': 'Updated at'}
+
+        # Repository attributes
+        self.repo_attrs = ['id', 'description', 'forks', 'stargazers_count', 'watchers', 'license', 'default_branch',
+                           'visibility',
+                           'language', 'open_issues', 'topics', 'homepage', 'clone_url', 'ssh_url', 'fork',
+                           'allow_forking',
+                           'private', 'archived', 'has_downloads', 'has_issues', 'has_pages', 'has_projects',
+                           'has_wiki',
+                           'pushed_at', 'created_at', 'updated_at']
+        # Repository attribute dictionary
+        self.repo_attr_dict = {'id': 'ID',
+                               'description': 'About',
+                               'forks': 'Forks',
+                               'stargazers_count': 'Stars',
+                               'watchers': 'Watchers',
+                               'license': 'License',
+                               'default_branch': 'Branch',
+                               'visibility': 'Visibility',
+                               'language': 'Language(s)',
+                               'open_issues': 'Open issues',
+                               'topics': 'Topics',
+                               'homepage': 'Homepage',
+                               'clone_url': 'Clone URL',
+                               'ssh_url': 'SSH URL',
+                               'fork': 'Is fork?',
+                               'allow_forking': 'Is forkable?',
+                               'private': 'Is private?',
+                               'archived': 'Is archived?',
+                               'is_template': 'Is template?',
+                               'has_wiki': 'Has wiki?',
+                               'has_pages': 'Has pages?',
+                               'has_projects': 'Has projects?',
+                               'has_issues': 'Has issues?',
+                               'has_downloads': 'Has downloads?',
+                               'pushed_at': 'Pushed at',
+                               'created_at': 'Created at',
+                               'updated_at': 'Updated at'}
+
+        # Repo releases attributes
+        self.repo_releases_attrs = ['id', 'node_id', 'tag_name', 'target_commitish', 'assets', 'draft', 'prerelease',
+                                    'created_at',
+                                    'published_at']
+        # Repo releases attribute dictionary
+        self.repo_releases_attr_dict = {'id': 'ID',
+                                        'node_id': 'Node ID',
+                                        'tag_name': 'Tag',
+                                        'target_commitish': 'Branch',
+                                        'assets': 'Assets',
+                                        'draft': 'Is draft?',
+                                        'prerelease': 'Is prerelease?',
+                                        'created_at': 'Created at',
+                                        'published_at': 'Published at'}
+
+        # Profile attributes
+        self.profile_attrs = ['avatar_url', 'login', 'id', 'node_id', 'bio', 'blog', 'location', 'followers',
+                              'following',
+                              'twitter_username', 'public_gists', 'public_repos', 'company', 'hireable', 'site_admin',
+                              'created_at',
+                              'updated_at']
+        # Profile attribute dictionary
+        self.profile_attr_dict = {'avatar_url': 'Profile Photo',
+                                  'login': 'Username',
+                                  'id': 'ID',
+                                  'node_id': 'Node ID',
+                                  'bio': 'Bio',
+                                  'blog': 'Blog',
+                                  'location': 'Location',
+                                  'followers': 'Followers',
+                                  'following': 'Following',
+                                  'twitter_username': 'Twitter Handle',
+                                  'public_gists': 'Gists (public)',
+                                  'public_repos': 'Repositories (public)',
+                                  'company': 'organisation',
+                                  'hireable': 'Is hireable?',
+                                  'site_admin': 'Is site admin?',
+                                  'created_at': 'Joined at',
+                                  'updated_at': 'Updated at'}
+
+        # User attributes
+        self.user_attrs = ['avatar_url', 'id', 'node_id', 'gravatar_id', 'site_admin', 'type', 'html_url']
+        # User attribute dictionary
+        self.user_attr_dict = {'avatar_url': 'Profile Photo',
+                               'id': 'ID',
+                               'node_id': 'Node ID',
+                               'gravatar_id': 'Gravatar ID',
+                               'site_admin': 'Is site admin?',
+                               'type': 'Account type',
+                               'html_url': 'URL'}
+
+        # Topic attributes
+        self.topic_attrs = ['score', 'curated', 'featured', 'display_name', 'created_by', 'created_at', 'updated_at']
+        # Topic attribute dictionary
+        self.topic_attr_dict = {'score': 'Score',
+                                'curated': 'Curated',
+                                'featured': 'Featured',
+                                'display_name': 'Display name',
+                                'created_by': 'Created by',
+                                'created_at': 'Created at',
+                                'updated_at': 'Updated at'}
+
+        # Gists attribute
+        self.gists_attrs = ['node_id', 'description', 'comments', 'files', 'git_push_url', 'public', 'truncated',
+                            'updated_at']
+        # Gists attribute dictionary
+        self.gists_attr_dict = {'node_id': 'Node ID',
+                                'description': 'About',
+                                'comments': 'Comments',
+                                'files': 'Files',
+                                'git_push_url': 'Git Push URL',
+                                'public': 'Is public?',
+                                'truncated': 'Is truncated?',
+                                'updated_at': 'Updated at'}
+
+        # Issue attributes
+        self.issue_attrs = ['id', 'node_id', 'score', 'state', 'number', 'comments', 'milestone', 'assignee',
+                            'assignees', 'labels',
+                            'locked', 'draft', 'closed_at']
+        # Issue attribute dict
+        self.issue_attr_dict = {'id': 'ID',
+                                'node_id': 'Node ID',
+                                'score': 'Score',
+                                'state': 'State',
+                                'closed_at': 'Closed at',
+                                'number': 'Number',
+                                'comments': 'Comments',
+                                'milestone': 'Milestone',
+                                'assignee': 'Assignee',
+                                'assignees': 'Assignees',
+                                'labels': 'Labels',
+                                'draft': 'Is draft?',
+                                'locked': 'Is locked?',
+                                'created_at': 'Created at'}
+
+        # Repo issues attributes
+        self.repo_issues_attrs = ['id', 'node_id', 'state', 'reactions', 'number', 'comments', 'milestone', 'assignee',
+                                  'active_lock_reason', 'author_association', 'assignees', 'labels', 'locked',
+                                  'closed_at',
+                                  'created_at', 'updated_at']
+        # Issue attribute dict
+        self.repo_issues_attr_dict = {'id': 'ID',
+                                      'node_id': 'Node ID',
+                                      'number': 'Number',
+                                      'state': 'State',
+                                      'reactions': 'Reactions',
+                                      'comments': 'Comments',
+                                      'milestone': 'Milestone',
+                                      'assignee': 'Assignee',
+                                      'assignees': 'Assignees',
+                                      'author_association': 'Author association',
+                                      'labels': 'Labels',
+                                      'locked': 'Is locked?',
+                                      'active_lock_reason': 'Lock reason',
+                                      'closed_at': 'Closed at',
+                                      'created_at': 'Created at',
+                                      'updated_at': 'Updated at'}
+
+        # User organisations attributes
+        self.user_orgs_attrs = ['avatar_url', 'id', 'node_id', 'url', 'description']
+        self.user_orgs_attr_dict = {'avatar_url': 'Profile Photo',
+                                    'id': 'ID',
+                                    'node_id': 'Node ID',
+                                    'url': 'URL',
+                                    'description': 'About'}
+
+        # Author dictionary
+        self.author_dict = {'Alias': 'rly0nheart',
+                            'Country': ':zambia: Zambia, Africa',
+                            'About.me': 'https://about.me/rly0nheart',
+                            'Buy Me A Coffee': 'https://buymeacoffee.com/189381184'}
+
+    def get_repos_from_username(self, username):
+        response = requests.get(f"{self.endpoint}/users/{username}/repos?per_page=100&sort=pushed",
+                                auth=HTTPBasicAuth(username, '')).text
+        repositories = re.findall(rf'"full_name":"{username}/(.*?)",.*?"fork":(.*?),', response)
+        unforked_repos = []
+        for repository in repositories:
+            if repository[1] == 'false':
+                unforked_repos.append(repository[0])
+        return unforked_repos
+
+    def get_email_from_contributor(username, repo, contributor):
+        response = requests.get(f"https://github.com/{username}/{repo}/commits?author={contributor}",
+                                auth=HTTPBasicAuth(username, '')).text
+        latest_commit = re.search(rf'href="/{username}/{repo}/commit/(.*?)"', response)
+        if latest_commit:
+            latest_commit = latest_commit.group(1)
+        else:
+            latest_commit = 'dummy'
+        commit_details = requests.get(f"https://github.com/{username}/{repo}/commit/{latest_commit}.patch",
+                                    auth=HTTPBasicAuth(username, '')).text
+        email = re.search(r'<(.*)>', commit_details)
+        if email:
+            email = email.group(1)
+        return email
+
+
+
+
+#Inherit octosuite class and make applicable changes.
 def new_octosuite_class():
 
     def response_resolver(request_details):
@@ -59,13 +298,9 @@ def new_octosuite_class():
             'default': default_response
         }
 
-
-    Octo_Source = octosuite.Octosuite
-    class Octo_Web(Octo_Source):
+    class Octo_Web(Octosuite):
         def __init__(self):
             super().__init__()
-
-        #Override applicable methods to fetch information
 
         def about(self):
             about_text = f"""
