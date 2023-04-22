@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h3>Select which action you want to take:</h3>
+    <section>
+        <label for="choose user action">Choose an action to take from the list of options</label>
+        <select name="choose user action" id="choose">
+            <option selected="true">-- select what to return --</option>
+            <option value="email">target's e-mail</option>
+            <option value="profile">target's profile information</option>
+            <option value="gists">target's gists</option>
+            <option value="org">organisation target belongs to/owns</option>
+            <option value="repos">target's repositories</option>
+            <option value="events">target's events</option>
+            <option value="follows">check if user A follows user B</option>
+            <option value="followers">target's followers</option>
+            <option value="following">users a target is following</option>
+            <option value="subscriptions">target's subscriptions</option>
+        </select>
+</section>
+<section class="repos invisible">
+    <form>
+        <label for='user_repo'>Get that repo here</label>
+        <input name='user_repo' type='text'>
+        <button type='submit'>Search</button>
+    </form>
+</section>
+{% endblock %}
