@@ -247,10 +247,10 @@ def new_octosuite_class():
     def response_resolver(request_details):
         details = request_details
         url_patterns = {
-            'organisation': f"{details['endpoint']}/orgs/{details['organisation']}/{details['resource']}?per_page={details['limit']}",
-            'repository': f"{details['endpoint']}/repos/{details['username']}/{details['repo_name']}/{details['resource']}?per_page={details['limit']}",
-            'search': f"{details['endpoint']}/{details['group']}?={details['query']}&per_page={details['limit']}",
-            'user': f"{details['endpoint']}/users/{details['username']}/{details['resource']}?per_page={details['limit']}",
+            'organisation': f"{details['endpoint']}/orgs/{details['reference']}/{details['resource']}?per_page={details['limit']}",
+            'repository': f"{details['endpoint']}/repos/{details['reference']}/{details['repo_name']}/{details['resource']}?per_page={details['limit']}",
+            'search': f"{details['endpoint']}/{details['reference']}?={details['query']}&per_page={details['limit']}",
+            'user': f"{details['endpoint']}/users/{details['reference']}/{details['resource']}?per_page={details['limit']}",
         }
         url_to_use = url_patterns[details['pattern']]
         return requests.get(url_to_use)
@@ -378,10 +378,12 @@ def new_octosuite_class():
         def issues_search(self, query, limit=10):
             request_details = {
                 'endpoint': self.endpoint,
-                'group': 'issues',
+                'reference': 'issues',
                 'query': query,
                 'limit': limit,
-                'pattern': 'search'
+                'pattern': 'search',
+                'repo_name': False,
+                
             } 
 
             response = response_resolver(request_details)
@@ -407,9 +409,11 @@ def new_octosuite_class():
             request_details = {
                 'endpoint': self.endpoint,
                 'resource': 'events',
-                'organisation': organisation,
+                'reference': organisation,
                 'limit': limit,
-                'pattern': 'organisation'
+                'pattern': 'organisation',
+                'repo_name': False,
+                'query': False
             }
 
             response = response_resolver(request_details)
@@ -497,9 +501,11 @@ def new_octosuite_class():
             request_details = {
                 'endpoint': self.endpoint,
                 'resource': 'repos',
-                'organisation': organisation,
+                'reference': organisation,
                 'limit': limit,
-                'pattern': 'organisation'
+                'pattern': 'organisation',
+                'repo_name': False,
+                'query': False
             }
 
             response = response_resolver(request_details)
@@ -568,10 +574,11 @@ def new_octosuite_class():
             request_details = {
                 'endpoint': self.endpoint,
                 'resource': 'contributors',
-                'username': username,
+                'reference': username,
                 'repo_name': repo_name,
                 'limit': limit,
-                'pattern': 'repository'
+                'pattern': 'repository',
+                'query': False
             }
 
             response = response_resolver(request_details)
@@ -596,10 +603,11 @@ def new_octosuite_class():
             request_details = {
                 'endpoint': self.endpoint,
                 'resource': 'forks',
-                'username': username,
+                'reference': username,
                 'repo_name': repo_name,
                 'limit': limit,
-                'pattern': 'repository'
+                'pattern': 'repository',
+                'query': False
             }
 
             response = response_resolver(request_details)
@@ -630,10 +638,11 @@ def new_octosuite_class():
             request_details = {
                 'endpoint': self.endpoint,
                 'resource': 'issues',
-                'username': username,
+                'reference': username,
                 'repo_name': repo_name,
                 'limit': limit,
-                'pattern': 'repository'
+                'pattern': 'repository',
+                'query': False
             }
 
             response = response_resolver(request_details)
@@ -664,10 +673,11 @@ def new_octosuite_class():
             request_details = {
                 'endpoint': self.endpoint,
                 'resource': 'releases',
-                'username': username,
+                'reference': username,
                 'repo_name': repo_name,
                 'limit': limit,
-                'pattern': 'repository'
+                'pattern': 'repository',
+                'query': False
             }
 
             response = response_resolver(request_details)
@@ -692,10 +702,11 @@ def new_octosuite_class():
             request_details = {
                 'endpoint': self.endpoint,
                 'resource': 'stargazers',
-                'username': username,
+                'reference': username,
                 'repo_name': repo_name,
                 'limit': limit,
-                'pattern': 'repository'
+                'pattern': 'repository',
+                'query': False
             }
 
             response = response_resolver(request_details)
@@ -718,10 +729,12 @@ def new_octosuite_class():
         def repos_search(self, query, limit=10):
             request_details = {
                 'endpoint': self.endpoint,
-                'group': 'repositories',
+                'reference': 'repositories',
                 'query': query,
                 'limit': limit,
-                'pattern': 'search'
+                'pattern': 'search',
+                'repo_name': False,
+                                
             } 
 
             response = response_resolver(request_details)
@@ -745,10 +758,11 @@ def new_octosuite_class():
         def topics_search(self, query, limit=10):
             request_details = {
                 'endpoint': self.endpoint,
-                'group': 'topics',
+                'reference': 'topics',
                 'query': query,
                 'limit': limit,
-                'pattern': 'search'
+                'pattern': 'search',
+                'repo_name': False               
             } 
 
             response = response_resolver(request_details)
@@ -817,9 +831,11 @@ def new_octosuite_class():
             request_details = {
                 'endpoint': self.endpoint,
                 'resource': 'followers',
-                'username': username,
+                'reference': username,
                 'limit': limit,
-                'pattern': 'user'
+                'pattern': 'user',
+                'repo_name': False,
+                'query': False                
             } 
 
             response = response_resolver(request_details)
@@ -845,9 +861,11 @@ def new_octosuite_class():
             request_details = {
                 'endpoint': self.endpoint,
                 'resource': 'following',
-                'username': username,
+                'reference': username,
                 'limit': limit,
-                'pattern': 'user'
+                'pattern': 'user',
+                'repo_name': False,
+                'query': False
             } 
 
             response = response_resolver(request_details)
@@ -885,9 +903,11 @@ def new_octosuite_class():
             request_details = {
                 'endpoint': self.endpoint,
                 'resource': 'gists',
-                'username': username,
+                'reference': username,
                 'limit': limit,
-                'pattern': 'user'
+                'pattern': 'user',
+                'repo_name': False,
+                'query': False
             }
 
             response = response_resolver(request_details)
@@ -912,9 +932,11 @@ def new_octosuite_class():
             request_details = {
                 'endpoint': self.endpoint,
                 'resource': 'orgs',
-                'username': username,
+                'reference': username,
                 'limit': limit,
-                'pattern': 'user'
+                'pattern': 'user',
+                'repo_name': False,
+                'query': False
             }
 
             response = response_resolver(request_details)
@@ -972,9 +994,11 @@ def new_octosuite_class():
             request_details = {
                 'endpoint': self.endpoint,
                 'resource': 'repos',
-                'username': username,
+                'reference': username,
                 'limit': limit,
-                'pattern': 'user'
+                'pattern': 'user',
+                'repo_name': False,
+                'query': False
             } 
 
             response = response_resolver(request_details)
@@ -997,10 +1021,11 @@ def new_octosuite_class():
         def user_search(self, query, limit=10):
             request_details = {
                 'endpoint': self.endpoint,
-                'group': 'users',
+                'reference': 'users',
                 'query': query,
                 'limit': limit,
-                'pattern': 'search'
+                'pattern': 'search',
+                'repo_name': False,
             } 
 
             response = response_resolver(request_details)
@@ -1026,9 +1051,11 @@ def new_octosuite_class():
             request_details = {
                 'endpoint': self.endpoint,
                 'resource': 'subscriptions',
-                'username': username,
+                'reference': username,
                 'limit': limit,
-                'pattern': 'user'
+                'pattern': 'user',
+                'repo_name': False,
+                'query': False
             } 
 
             response = response_resolver(request_details)
