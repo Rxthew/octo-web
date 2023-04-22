@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8">
+    <meta name="viewport" content="width=device-width", initial-scale="1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='octo.css') }}">
+    <script src="{{ url_for('static', filename='octo.js') }}" defer="true" crossorigin="anonymous"></script>
+    <title>Octo-Web</title>
+</head>
+<body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <header>
+        <h1>Octo-Web</h1>
+        <h2>Bringing Octosuite to the web</h2>
+        {% block header %}{% endblock %}
+    </header>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+    </nav>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

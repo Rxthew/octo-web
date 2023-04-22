@@ -1,30 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Octo-Web</title>
-</head>
-<body>
-    <header>
-        <h1>Octo-Web</h1>
-        <h2>Bringing Octosuite to the web</h2>
-    </header>
-    <nav>
-        <a href="/">Home</a>
-        <a href="/about">About</a>
-    </nav>
-    <main>
-        <form target="" method="POST">
-            <label for="search">Search here</label>
-            <input id="search" name="search" type="text">
-            <label for="category">Category:</label>
-            <select id="category" name="category">
-                <option value="Users">Users</option>
-            </select>
-            <button type="submit">Search</button>
-        </form>
-    </main>
-</body>
-</html>
+{% extends 'base.html' %}
+
+{% block content %}
+    <h3>Choose a category to investigate</h3>
+    <div>
+        <a href="/users">Users</a>
+        <a href="/repos">Repositories</a>
+        <a href="/topics">Topics</a>
+        <a href="/issues">Issues</a>
+        <a href="/commits">Commits</a>
+    </div>
+{% endblock %}
