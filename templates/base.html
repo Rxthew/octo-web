@@ -15,12 +15,14 @@
         <h2>Bringing Octosuite to the web</h2>
         {% block header %}{% endblock %}
     </header>
-    <nav>
-        <a href="/">Home</a>
-        <a href="/about">About</a>
-    </nav>
-    <main>
-        {% block content %}{% endblock %}
-    </main>
+    <div>
+        <nav>
+            <a href="/">Home</a>
+            <a href="/about">About</a>
+        </nav>
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+    </div> 
 </body>
 </html>
