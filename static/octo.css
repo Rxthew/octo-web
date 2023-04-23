@@ -48,6 +48,11 @@ article, form {
     padding: 1rem;
 }
 
+p {
+    padding: 1rem;
+}
+
+
 form {
     align-items: flex-start;
 }
