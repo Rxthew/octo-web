@@ -244,7 +244,7 @@ class Octosuite:
 #Inherit octosuite class and make applicable changes.
 def new_octosuite_class():
 
-    def response_resolver(request_details):
+    def response_resolver(link, request_details):
         details = request_details
         url_patterns = {
             'organisation': f"{details['endpoint']}/orgs/{details['reference']}/{details['resource']}?per_page={details['limit']}",
@@ -253,7 +253,7 @@ def new_octosuite_class():
             'user': f"{details['endpoint']}/users/{details['reference']}/{details['resource']}?per_page={details['limit']}",
         }
         url_to_use = url_patterns[details['pattern']]
-        return requests.get(url_to_use)
+        return requests.get(link) if link else  requests.get(url_to_use)
 
 
     """
@@ -298,6 +298,9 @@ def new_octosuite_class():
             404: not_found,
             'default': default_response
         }
+
+    def process_final_response(body,links):
+        return {'body': list(body), 'links': links} if type(body) is map else body
 
     class Octo_Web(Octosuite):
         def __init__(self):
@@ -989,7 +992,7 @@ def new_octosuite_class():
             status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
             return handle_response[status_code]()
 
-        def user_repos(self, username, limit=10):
+        def user_repos(self, username, limit=10, page_link=None):
 
             request_details = {
                 'endpoint': self.endpoint,
@@ -1001,7 +1004,7 @@ def new_octosuite_class():
                 'query': False
             } 
 
-            response = response_resolver(request_details)
+            response = response_resolver(page_link,request_details)
             json_response = response.json() or 'error'
 
             if(json_response == 'error'):
@@ -1016,7 +1019,9 @@ def new_octosuite_class():
             handle_response = data_handler(repo_data, 'User not found.', json_response)
 
             status_code = response.status_code if response.status_code == 404 or response.status_code == 200 else 'default'
-            return handle_response[status_code]()
+            body = handle_response[status_code]()
+            links = response.links
+            return process_final_response(body,links)
 
         def user_search(self, query, limit=10):
             request_details = {
