@@ -142,6 +142,7 @@ const addPagination = function(links){
         button.classList.add('placeholder');
         button.id = linkId;
         button.textContent = linkId;
+        button.disabled = true;
         nav.appendChild(button);
         return button
     };
@@ -320,7 +321,6 @@ const selectVisibleForm = function(event){
         const section = mapOptionToFormSection(option);
         const select = event.currentTarget;
         const selected = select[select.selectedIndex];
-        console.log(selected) //remove
 
         return option === selected ? toggleVisible(section) : toggleInvisible(section);
     };
@@ -366,4 +366,9 @@ const addListeners = function(){
 };
 
 addListeners();
+
+//temporary
+if(document.querySelector('select')){
+    alert('This page is not yet complete. Please select \'target\'s repositories\' option from the dropdown to see the implementation in action')
+}
 
