@@ -19,9 +19,11 @@
         </select>
 </section>
 <section class="repos invisible">
-    <form>
-        <label for='user_repo'>Get that repo here</label>
-        <input name='user_repo' type='text'>
+    <form id="user_repo" >
+        <label for='user_repo_username'>Username:</label>
+        <input name='user_repo_username' type='text' required="true">
+        <label for='user_repo_limit'>Limit of entries per page:</label>
+        <input name='user_repo_limit' type='number' min="1" max="20" value="10" required="true">
         <button type='submit'>Search</button>
     </form>
 </section>
