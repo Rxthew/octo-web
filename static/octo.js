@@ -215,9 +215,22 @@ const renderTree = function(body){
         };
         
         const integrateKey = function(key, liCont){
+            const ul = document.createElement('ul');
+            const li = document.createElement('li');
             const details = document.createElement('details');
+
+            if(liCont.classList.contains('tree_branch')){
+                liCont.appendChild(details)
+            }
+            else{
+                liCont.appendChild(ul)
+                ul.appendChild(li);
+                li.appendChild(details)
+            }
+
+           
+
             details.setAttribute('open','true');
-            liCont.appendChild(details);
             const summary = document.createElement('summary');
             summary.textContent = key
             details.appendChild(summary);
@@ -243,16 +256,18 @@ const renderTree = function(body){
             Array.isArray(value) ? value.map(integrateUnit) : integrateUnit(value)
             return ul
         };
-        const liContainer = document.createElement('li');
+    
         const integrators = {integrateKey, integrateValue};
-        parseItemStructure(item,liContainer,integrators);
-        treeContainer.appendChild(liContainer);
+        parseItemStructure(item,treeContainer,integrators);
     }
 
     const tree = document.createElement('ul');
     tree.classList.add('tree');
     container.appendChild(tree);
-    body.map((item) => parseSingleItem(item,tree))
+    const listContainer = document.createElement('li');
+    listContainer.classList.add('tree_branch');
+    tree.appendChild(listContainer)
+    body.map((item) => parseSingleItem(item,listContainer))
    
 };
 
@@ -359,16 +374,25 @@ const toggleFormEvents = function(){
 };
 
 const addListeners = function(){
-    const select = document.querySelector('select');
-    select.addEventListener('change',selectVisibleForm);
-    select.addEventListener('change',toggleFormEvents);
 
+    const select = document.querySelector('select');
+    if(select){
+        select.addEventListener('change',selectVisibleForm);
+        select.addEventListener('change',toggleFormEvents);
+    }
+    
 };
 
 addListeners();
 
 //temporary
 if(document.querySelector('select')){
-    alert('This page is not yet complete. Please select \'target\'s repositories\' option from the dropdown to see the implementation in action')
+   const temporaryDisclosure = document.createElement("div");
+   temporaryDisclosure.textContent = 'This page is still in development. Please select "target\'s repositories" to see it in effect.'
+   temporaryDisclosure.style.color = 'red';
+   temporaryDisclosure.style.fontSize = 'small';
+   const select = document.querySelector('select');
+   const parent = select.parentElement;
+   parent.insertBefore(temporaryDisclosure,select);
 }
 
