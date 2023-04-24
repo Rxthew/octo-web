@@ -285,6 +285,7 @@ const renderError = function(response){
         const errorMessage = document.createElement('p');
         errorMessage.textContent = response.error;
         newError.appendChild(errorMessage)
+        console.log(response.response) //log response. 
 
         return newError
     };
