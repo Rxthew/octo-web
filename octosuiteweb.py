@@ -291,7 +291,6 @@ def new_octosuite_class():
             return {'error': f'{error_msg}'}
         
         def default_response():
-                print(json_response) #remove
                 return {'error': 'Something unexpected happened. Please check your internet connection and try again.'}
 
         return {
