@@ -1,11 +1,11 @@
 *,*::before,*::after {
     margin: 0;
     padding: 0;
-    box-sizing: inherit;
+    box-sizing: border-box;
 }
 
 html {
-    box-sizing: border-box;
+    line-height: 1.5;
 }
 
 body {
@@ -22,7 +22,6 @@ body > div > nav {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    
 
 }
 
@@ -72,10 +71,17 @@ button {
     
 }
 
-
 section {
     margin: 0.5rem;
     padding: 0.5rem;
+}
+
+ul {
+    padding: 1rem 2rem 0 3rem
+}
+
+ul ul { 
+    padding: 0 0 0 1rem 
 }
 
 .container > nav {
