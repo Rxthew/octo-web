@@ -11,7 +11,7 @@ itsdangerous==2.0.1
 Jinja2==3.0.3
 MarkupSafe==2.0.1
 psutil==5.9.4
-Pygments==2.14.0
+Pygments==2.15.0
 pyreadline3==3.4.1
 requests==2.31.0
 rich==12.6.0
